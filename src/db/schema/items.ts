@@ -6,8 +6,8 @@ import {
   timestamp,
   index,
 } from 'drizzle-orm/pg-core';
-import { itemTypeEnum, itemStatusEnum } from './enums.js';
-import { users } from './users.js';
+import { itemTypeEnum, itemStatusEnum } from './enums';
+import { users } from './users';
 
 export const items = pgTable(
   'items',

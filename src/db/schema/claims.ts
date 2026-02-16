@@ -4,9 +4,9 @@ import {
   text,
   timestamp,
 } from 'drizzle-orm/pg-core';
-import { claimStatusEnum } from './enums.js';
-import { users } from './users.js';
-import { items } from './items.js';
+import { claimStatusEnum } from './enums';
+import { users } from './users';
+import { items } from './items';
 
 export const claims = pgTable('claims', {
   id: uuid('id').defaultRandom().primaryKey(),
