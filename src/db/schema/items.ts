@@ -34,12 +34,6 @@ export const items = pgTable(
       .notNull(),
   },
   (table) => [
-    index('idx_items_title_trgm')
-      .using('gin', table.title)
-      ,
-    index('idx_items_description_trgm')
-      .using('gin', table.description)
-      ,
     index('idx_items_type').on(table.type),
     index('idx_items_status').on(table.status),
   ],
