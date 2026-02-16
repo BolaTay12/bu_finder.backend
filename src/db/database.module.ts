@@ -13,13 +13,9 @@ export const DRIZZLE = Symbol('drizzle-connection');
       provide: DRIZZLE,
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
-        const pool = new Pool({
-          host: configService.get<string>('DATABASE_HOST'),
-          port: configService.get<number>('DATABASE_PORT'),
-          user: configService.get<string>('DATABASE_USER'),
-          password: configService.get<string>('DATABASE_PASSWORD'),
-          database: configService.get<string>('DATABASE_NAME'),
-        });
+        const connectionString = configService.get<string>('DATABASE_URL');
+
+        const pool = new Pool({ connectionString });
 
         // Test connection
         const client = await pool.connect();
