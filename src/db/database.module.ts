@@ -2,7 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-// import * as schema from './schema';
+import * as schema from './schema/index.js';
 
 export const DRIZZLE = Symbol('drizzle-connection');
 
@@ -26,7 +26,7 @@ export const DRIZZLE = Symbol('drizzle-connection');
         console.log('✅ Database connected successfully');
         client.release();
 
-        // return drizzle(pool, { schema });
+        return drizzle(pool, { schema });
       },
     },
   ],
