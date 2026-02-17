@@ -20,3 +20,8 @@ export const claimStatusEnum = pgEnum('claim_status', [
   'APPROVED',
   'REJECTED',
 ]);
+
+export enum responseStatus {
+  SUCCESS = 'success',
+  ERROR = 'error',
+};

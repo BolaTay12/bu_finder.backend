@@ -18,11 +18,16 @@ export interface UserWithPassword extends UserResult {
   password: string;
 }
 
+export interface UserEmailVerification {
+  emailVerified: boolean;
+}
+
 export interface IAuthRepository {
     findByEmail(email: string): Promise<UserWithPassword | null>;
     findByUniversityId(universityId: string): Promise<UserResult | null>;
     findById(userId: string): Promise<UserResult | null>;
-    create(data: CreateUserData): Promise<UserResult>;
+    create(data: CreateUserData): Promise<UserEmailVerification>;
+    updateEmailVerificationStatus(userId: string, emailVerified: boolean): Promise<void>;
 }
 
 export const AUTH_REPOSITORY = Symbol('AUTH_REPOSITORY');

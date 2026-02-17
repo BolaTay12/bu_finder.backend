@@ -5,6 +5,7 @@ import {
   MinLength,
   Matches,
 } from 'class-validator';
+import { responseStatus } from 'src/db/schema';
 
 export class RegisterDto {
   @IsString()
@@ -24,4 +25,12 @@ export class RegisterDto {
   @IsString()
   @MinLength(6)
   password: string;
+}
+
+export class RegisterResponseDto {
+  status: responseStatus;
+  message: string;
+  data: {
+    verified: boolean;
+  }
 }

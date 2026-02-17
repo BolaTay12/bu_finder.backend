@@ -9,6 +9,7 @@ import {
   CreateUserData,
   UserResult,
   UserWithPassword,
+  UserEmailVerification,
 } from './interfaces';
 
 @Injectable()
@@ -62,7 +63,7 @@ export class AuthRepository implements IAuthRepository {
     return user ?? null;
   }
 
-  async create(data: CreateUserData): Promise<UserResult> {
+  async create(data: CreateUserData): Promise<UserEmailVerification> {
     const [newUser] = await this.db
       .insert(users)
       .values({
@@ -72,12 +73,7 @@ export class AuthRepository implements IAuthRepository {
         password: data.password,
       })
       .returning({
-        id: users.id,
-        fullName: users.fullName,
-        email: users.email,
-        universityId: users.universityId,
-        role: users.role,
-        createdAt: users.createdAt,
+        emailVerified: users.emailVerified,
       });
 
     return newUser;
