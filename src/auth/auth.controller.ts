@@ -52,6 +52,10 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser('id') userId: string): Promise<GetProfileResponseDto> {
-    return this.authService.getProfile(userId);
+    return {
+        status: responseStatus.SUCCESS,
+        message: 'Profile retrieved successfully',
+        data: await this.authService.getProfile(userId),
+    };
   }
 }
