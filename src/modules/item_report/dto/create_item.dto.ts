@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
-import { itemStatuses, itemTypeEnum, itemTypes } from 'src/db/schema';
+import { itemStatuses, itemTypes } from 'src/db/schema';
 
 export class CreateItemDto {
   @ApiProperty({ example: 'Lost iPhone 15', description: 'Item title' })
@@ -23,14 +23,18 @@ export class CreateItemDto {
   @IsNotEmpty()
   location: string;
 
-  @ApiProperty({ example: 'LOST', enum: ['LOST', 'FOUND'], description: 'Item type' })
-  @IsEnum(itemTypeEnum)
+  @ApiProperty({ example: 'LOST', enum: itemTypes, description: 'Item type (LOST or FOUND)' })
+  @IsEnum(itemTypes, { message: 'type must be LOST or FOUND' })
   type: itemTypes;
 
-  @ApiProperty({ example: 'https://res.cloudinary.com/...', required: false, description: 'Image URL from Cloudinary' })
+  @ApiProperty({ 
+    type: 'string', 
+    format: 'binary',
+    required: false,
+    description: 'Item image file (JPEG, PNG, WebP, GIF - max 5MB)' 
+  })
   @IsOptional()
-  @IsString()
-  imageUrl?: string;
+  image?: any; // File upload from multipart/form-data
 }
 
 export class ItemResponseDto {
@@ -49,10 +53,10 @@ export class ItemResponseDto {
   @ApiProperty({ example: 'Library' })
   location: string;
 
-  @ApiProperty({ example: 'LOST', enum: ['LOST', 'FOUND'] })
+  @ApiProperty({ example: 'LOST', enum: itemTypes })
   type: itemTypes;
 
-  @ApiProperty({ example: 'PENDING', enum: ['PENDING', 'APPROVED', 'REJECTED', 'CLAIMED'] })
+  @ApiProperty({ example: 'PENDING', enum: itemStatuses })
   status: itemStatuses;
 
   @ApiProperty({ example: 'https://res.cloudinary.com/...', nullable: true })

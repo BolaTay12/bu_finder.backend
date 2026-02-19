@@ -6,16 +6,21 @@ import {
   Body,
   Param,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   HttpCode,
   HttpStatus,
   Inject,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { CreateItemDto, CreateItemResponseDto, GetItemsResponseDto, ItemResponseDto } from './dto/create_item.dto';
 import { JwtAuthGuard, RolesGuard } from '../../auth/guards';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators';
 import { ITEMS_SERVICE, type IItemsService } from './interface/item-service.interface';
+import { CloudinaryService } from '../../common/cloudinary/cloudinary.service';
 import { responseStatus } from 'src/db/schema';
 
 @ApiTags('Items')
@@ -24,23 +29,52 @@ export class ItemsController {
   constructor(
     @Inject(ITEMS_SERVICE)
     private readonly itemsService: IItemsService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('image'))
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Report a lost or found item' })
+  @ApiOperation({ summary: 'Report a lost or found item with optional image' })
   @ApiResponse({ status: 201, description: 'Item reported successfully', type: CreateItemResponseDto })
-  async createItem(
-    @CurrentUser('id') userId: string,
-    @Body() dto: CreateItemDto,
-  ): Promise<CreateItemResponseDto> {
-    const item = await this.itemsService.createItem(userId, dto);
+  async createItem( @CurrentUser('id') userId: string, @Body() dto: CreateItemDto, @UploadedFile() file?: Express.Multer.File, ): Promise<CreateItemResponseDto> {
+    let imageUrl: string | undefined;
+
+    // Upload image to Cloudinary if provided
+    if (file) {
+      // Validate file type
+      const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+      if (!allowedMimes.includes(file.mimetype)) {
+        throw new BadRequestException('Only image files are allowed (JPEG, PNG, WebP, GIF)');
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        throw new BadRequestException('Image size must be less than 5MB');
+      }
+
+      try {
+        const cloudinaryResponse = await this.cloudinaryService.uploadImage(file);
+        imageUrl = cloudinaryResponse.secure_url;
+      } catch (error) {
+        throw new BadRequestException('Failed to upload image to Cloudinary');
+      }
+    }
+
+    const item = await this.itemsService.createItem( {
+      ...dto,
+      imageUrl,
+      submittedBy: userId,
+    });
+
     return {
       status: responseStatus.SUCCESS,
       message: 'Item reported successfully',
-      data: item
+      data: item,
     };
   }
 
@@ -73,6 +107,24 @@ export class ItemsController {
       data: items,
     };
   }
+
+  @Get('my-items/count')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Get current user item count' })
+  @ApiResponse({ status: 200, description: 'Item count retrieved successfully' })
+  async getUserItemCount(
+    @CurrentUser('id') userId: string,
+  ): Promise<{ status: string; message: string; data: { count: number } }> {
+    const count = await this.itemsService.getUserItemCount(userId);
+    return {
+      status: responseStatus.SUCCESS,
+      message: 'Item count retrieved successfully',
+      data: { count },
+    };
+  }
+
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)

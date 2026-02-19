@@ -30,6 +30,7 @@ export interface IItemsRepository {
     findAll(): Promise<ItemData[]>;
     findById(id: string): Promise<ItemData | null>;
     findByUserId(userId: string): Promise<ItemData[]>;
+    getCountByUserId(userId: string): Promise<number>;
     updateStatus(id: string, status: itemStatuses): Promise<ItemData>;
     delete(id: string): Promise<void>;
 }
