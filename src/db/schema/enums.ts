@@ -25,3 +25,8 @@ export enum responseStatus {
   SUCCESS = 'success',
   ERROR = 'error',
 };
+
+export enum itemTypes {
+  LOST = 'LOST',
+  FOUND = 'FOUND',
+}
