@@ -16,7 +16,7 @@ export class RegisterDto {
 
   @ApiProperty({ example: 'john.doe@babcock.edu.ng', description: 'Babcock University email' })
   @IsEmail()
-  @Matches(/@babcock\.edu\.ng$/, {
+  @Matches(/(@student\.babcock\.edu\.ng|@babcock\.edu\.ng|@staff\.babcock\.edu\.ng)$/, {
     message: 'Email must be a valid Babcock University email',
   })
   email: string;
