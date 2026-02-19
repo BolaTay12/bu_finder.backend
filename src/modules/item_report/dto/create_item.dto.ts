@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsString, IsNotEmpty, IsEnum, IsOptional } from 'class-validator';
-import { itemTypeEnum, itemTypes } from 'src/db/schema';
+import { itemStatuses, itemTypeEnum, itemTypes } from 'src/db/schema';
 
 export class CreateItemDto {
   @ApiProperty({ example: 'Lost iPhone 15', description: 'Item title' })
@@ -53,7 +53,7 @@ export class ItemResponseDto {
   type: itemTypes;
 
   @ApiProperty({ example: 'PENDING', enum: ['PENDING', 'APPROVED', 'REJECTED', 'CLAIMED'] })
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CLAIMED';
+  status: itemStatuses;
 
   @ApiProperty({ example: 'https://res.cloudinary.com/...', nullable: true })
   imageUrl: string | null;

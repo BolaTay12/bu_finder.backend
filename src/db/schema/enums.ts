@@ -30,3 +30,10 @@ export enum itemTypes {
   LOST = 'LOST',
   FOUND = 'FOUND',
 }
+
+export enum itemStatuses {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  CLAIMED = 'CLAIMED',
+}
