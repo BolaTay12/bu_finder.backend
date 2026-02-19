@@ -1,5 +1,4 @@
 import { itemStatuses, itemTypes } from 'src/db/schema/enums';
-import { ItemResponseDto } from '../dto/create_item.dto';
 
 export interface CreateItemData {
   title: string;
@@ -11,13 +10,27 @@ export interface CreateItemData {
   submittedBy: string;
 }
 
+export interface ItemData {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  location: string;
+  type: itemTypes;
+  status: itemStatuses;
+  imageUrl: string | null;
+  submittedBy: string;
+  dateReported: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export interface IItemsRepository {
-    create(data: CreateItemData): Promise<ItemResponseDto>;
-    findAll(): Promise<ItemResponseDto[]>;
-    findById(id: string): Promise<ItemResponseDto | null>;
-    findByUserId(userId: string): Promise<ItemResponseDto[]>;
-    updateStatus(id: string, status: itemStatuses): Promise<ItemResponseDto>;
+    create(data: CreateItemData): Promise<ItemData>;
+    findAll(): Promise<ItemData[]>;
+    findById(id: string): Promise<ItemData | null>;
+    findByUserId(userId: string): Promise<ItemData[]>;
+    updateStatus(id: string, status: itemStatuses): Promise<ItemData>;
     delete(id: string): Promise<void>;
 }
 

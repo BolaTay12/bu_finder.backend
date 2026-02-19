@@ -1,12 +1,13 @@
-import { CreateItemDto, ItemResponseDto } from '../dto/create_item.dto';
+import { CreateItemDto } from '../dto/create_item.dto';
+import { ItemData } from './item-repository.interface';
 
 export interface IItemsService {
-  createItem(userId: string, dto: CreateItemDto): Promise<ItemResponseDto>;
-  getAllItems(): Promise<ItemResponseDto[]>;
-  getItemById(id: string): Promise<ItemResponseDto>;
-  getUserItems(userId: string): Promise<ItemResponseDto[]>;
-  approveItem(id: string): Promise<ItemResponseDto>;
-  rejectItem(id: string): Promise<ItemResponseDto>;
+  createItem(userId: string, dto: CreateItemDto): Promise<ItemData>;
+  getAllItems(): Promise<ItemData[]>;
+  getItemById(id: string): Promise<ItemData>;
+  getUserItems(userId: string): Promise<ItemData[]>;
+  approveItem(id: string): Promise<ItemData>;
+  rejectItem(id: string): Promise<ItemData>;
 }
 
 export const ITEMS_SERVICE = Symbol('ITEMS_SERVICE');
