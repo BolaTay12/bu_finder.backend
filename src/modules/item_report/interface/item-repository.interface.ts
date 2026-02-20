@@ -25,12 +25,17 @@ export interface ItemData {
   updatedAt: Date;
 }
 
+export interface ItemCountByType {
+  lost: number;
+  found: number;
+}
+
 export interface IItemsRepository {
     create(data: CreateItemData): Promise<ItemData>;
     findAll(): Promise<ItemData[]>;
     findById(id: string): Promise<ItemData | null>;
     findByUserId(userId: string): Promise<ItemData[]>;
-    getCountByUserId(userId: string): Promise<number>;
+    getCountByUserId(userId: string): Promise<ItemCountByType>;
     updateStatus(id: string, status: itemStatuses): Promise<ItemData>;
     delete(id: string): Promise<void>;
 }

@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
-import { CreateItemDto, CreateItemResponseDto, GetItemsResponseDto, ItemResponseDto } from './dto/create_item.dto';
+import { CreateItemDto, CreateItemResponseDto, GetItemCountResponseDto, GetItemsResponseDto, ItemResponseDto } from './dto/items.dto';
 import { JwtAuthGuard, RolesGuard } from '../../auth/guards';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators';
@@ -116,12 +116,12 @@ export class ItemsController {
   @ApiResponse({ status: 200, description: 'Item count retrieved successfully' })
   async getUserItemCount(
     @CurrentUser('id') userId: string,
-  ): Promise<{ status: string; message: string; data: { count: number } }> {
+  ): Promise<GetItemCountResponseDto> {
     const count = await this.itemsService.getUserItemCount(userId);
     return {
       status: responseStatus.SUCCESS,
       message: 'Item count retrieved successfully',
-      data: { count },
+      data: count,
     };
   }
 

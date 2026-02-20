@@ -1,5 +1,5 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { CreateItemData, ItemData, ITEMS_REPOSITORY, type IItemsRepository, } from './interface/item-repository.interface';
+import { CreateItemData, ItemCountByType, ItemData, ITEMS_REPOSITORY, type IItemsRepository, } from './interface/item-repository.interface';
 import { IItemsService } from './interface/item-service.interface';
 import { itemStatuses } from 'src/db/schema';
 
@@ -10,7 +10,7 @@ export class ItemsService implements IItemsService {
     private readonly itemsRepository: IItemsRepository,
   ) {}
 
-    async getUserItemCount(userId: string): Promise<number> {
+    async getUserItemCount(userId: string): Promise<ItemCountByType> {
         return this.itemsRepository.getCountByUserId(userId);
     }
 

@@ -96,3 +96,14 @@ export class GetItemsResponseDto {
   @ApiProperty({ type: [ItemResponseDto] })
   data: ItemResponseDto[];
 }
+
+export class GetItemCountResponseDto {
+  @ApiProperty({ example: 'success', enum: ['success', 'error'] })
+  status: string;
+
+  @ApiProperty({ example: 'Item count retrieved successfully' })
+  message: string;
+
+  @ApiProperty({ type: Object, example: { lost: 3, found: 5 } })
+  data: { lost: number; found: number };
+}

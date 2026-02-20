@@ -1,12 +1,12 @@
-import { CreateItemDto } from '../dto/create_item.dto';
-import { CreateItemData, ItemData } from './item-repository.interface';
+import { CreateItemDto } from '../dto/items.dto';
+import { CreateItemData, ItemCountByType, ItemData } from './item-repository.interface';
 
 export interface IItemsService {
   createItem(dto: CreateItemData): Promise<ItemData>;
   getAllItems(): Promise<ItemData[]>;
   getItemById(id: string): Promise<ItemData>;
   getUserItems(userId: string): Promise<ItemData[]>;
-  getUserItemCount(userId: string): Promise<number>;
+  getUserItemCount(userId: string): Promise<ItemCountByType>;
   approveItem(id: string): Promise<ItemData>;
   rejectItem(id: string): Promise<ItemData>;
 }

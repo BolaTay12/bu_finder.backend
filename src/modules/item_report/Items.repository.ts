@@ -1,10 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq, count } from 'drizzle-orm';
+import { eq, count, sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../../db/db.module';
 import * as schema from '../../db/schema';
 import { items } from '../../db/schema/index';
-import { IItemsRepository, CreateItemData, ItemData } from './interface/item-repository.interface';
+import { IItemsRepository, CreateItemData, ItemData, ItemCountByType } from './interface/item-repository.interface';
 
 @Injectable()
 export class ItemsRepository implements IItemsRepository {
@@ -13,12 +13,24 @@ export class ItemsRepository implements IItemsRepository {
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
-    async getCountByUserId(userId: string): Promise<number> {
+    async getCountByUserId(userId: string): Promise<ItemCountByType> {
+        // const result = await this.db
+        //     .select({ count: count(items.id) })
+        //     .from(items)
+        //     .where(eq(items.submittedBy, userId));
+        // return result[0]?.count ?? 0;
+
         const result = await this.db
-            .select({ count: count(items.id) })
-            .from(items)
-            .where(eq(items.submittedBy, userId));
-        return result[0]?.count ?? 0;
+            .select({
+                lost: sql<number>`COUNT(CASE WHEN type = 'LOST' THEN 1 END)`,
+                found: sql<number>`COUNT(CASE WHEN type = 'FOUND' THEN 1 END)`,
+            })
+            .from(items);
+        
+        return {
+            lost: result[0]?.lost ?? 0,
+            found: result[0]?.found ?? 0,
+        };
     }
 
     async delete(id: string): Promise<void> {
