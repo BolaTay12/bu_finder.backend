@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UseGuards,
   UseInterceptors,
   UploadedFile,
@@ -16,6 +17,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { CreateItemDto, CreateItemResponseDto, GetItemCountResponseDto, GetItemsResponseDto, ItemResponseDto } from './dto/items.dto';
+import { SearchItemsQueryDto, SearchItemsResponseDto } from './dto/search-items.dto';
 import { JwtAuthGuard, RolesGuard } from '../../auth/guards';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators';
@@ -31,6 +33,31 @@ export class ItemsController {
     private readonly itemsService: IItemsService,
     private readonly cloudinaryService: CloudinaryService,
   ) {}
+
+  @Get('search')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Search items with weighted fuzzy matching' })
+  @ApiResponse({ status: 200, description: 'Search completed successfully', type: SearchItemsResponseDto })
+  async searchItems(@Query() query: SearchItemsQueryDto): Promise<SearchItemsResponseDto> {
+    const results = await this.itemsService.searchItems({
+      query: query.q,
+      type: query.type,
+      location: query.location,
+      category: query.category,
+      limit: query.limit,
+      offset: query.offset,
+    });
+
+    return {
+      status: responseStatus.SUCCESS,
+      message: 'Search completed successfully',
+      data: results,
+      pagination: {
+        limit: query.limit,
+        offset: query.offset,
+      },
+    };
+  }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -124,7 +151,6 @@ export class ItemsController {
       data: count,
     };
   }
-
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
