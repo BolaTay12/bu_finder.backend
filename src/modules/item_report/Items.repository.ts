@@ -26,7 +26,11 @@ export class ItemsRepository implements IItemsRepository {
                 lost: sql<number>`COUNT(CASE WHEN type = 'LOST' THEN 1 END)`,
                 found: sql<number>`COUNT(CASE WHEN type = 'FOUND' THEN 1 END)`,
             })
-            .from(items);
+            .from(items)
+            .where(and(
+                eq(items.submittedBy, userId),
+                eq(items.status, itemStatuses.APPROVED)
+            ));
         
         return {
             lost: result[0]?.lost ?? 0,
@@ -59,7 +63,8 @@ export class ItemsRepository implements IItemsRepository {
     async findAll(): Promise<ItemData[]> {
         const allItems = await this.db
         .select()
-        .from(items);
+        .from(items)
+        .where(eq(items.status, itemStatuses.APPROVED));
 
         return allItems as ItemData[];
     }
