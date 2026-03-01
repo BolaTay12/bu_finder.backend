@@ -27,7 +27,8 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { responseStatus } from 'src/db/schema/enums';
-import { CLAIMS_SERVICE, IClaimsService } from './interface/claims-service.interface';
+import { CLAIMS_SERVICE } from './interface/claims-service.interface';
+import type { IClaimsService } from './interface/claims-service.interface';
 import { CreateClaimDto, ClaimResponseDto } from './dto/claims.dto';
 
 class PaginationQueryDto {
@@ -67,7 +68,7 @@ export class ClaimsController {
 
     if (file) {
       try {
-        const uploadResult = await this.cloudinaryService.uploadFile(file);
+        const uploadResult = await this.cloudinaryService.uploadImage(file);
         proofImageUrl = uploadResult.url;
       } catch (error) {
         this.logger.error('Error uploading proof image to Cloudinary:', error);

@@ -6,11 +6,14 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
-import { ClaimData, IClaimsRepository, CLAIMS_REPOSITORY } from './interface/claims-repository.interface';
-import { IClaimsService } from './interface/claims-service.interface';
+import { ClaimData, CLAIMS_REPOSITORY } from './interface/claims-repository.interface';
+import type { IClaimsRepository } from './interface/claims-repository.interface';
+import type { IClaimsService } from './interface/claims-service.interface';
 import { CreateClaimDto } from './dto/claims.dto';
-import { ITEMS_SERVICE, IItemsService } from '../item_report/interface/item-service.interface';
-import { NOTIFICATIONS_SERVICE, INotificationsService } from '../notifications/interface/notifications-service.interface';
+import { ITEMS_SERVICE } from '../item_report/interface/item-service.interface';
+import type { IItemsService } from '../item_report/interface/item-service.interface';
+import { NOTIFICATIONS_SERVICE } from '../notifications/interface/notifications-service.interface';
+import type { INotificationsService } from '../notifications/interface/notifications-service.interface';
 
 @Injectable()
 export class ClaimsService implements IClaimsService {
