@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
 import type { INotificationsService } from './interface';
 import { NOTIFICATIONS_REPOSITORY } from './interface';
 import type { INotificationsRepository, NotificationData } from './interface/notifications-repository.interface';
@@ -17,12 +17,17 @@ export class NotificationsService implements INotificationsService {
     message: string,
     matchedItemId?: string,
   ): Promise<NotificationResponseDto> {
+
+    Logger.log(`Creating notification for userId="${userId}" with title="${title}"`, 'NotificationsService.createNotification');
+
     const notification = await this.notificationsRepository.create({
       userId,
       title,
       message,
       matchedItemId,
     });
+
+    Logger.log(`Created notification with id="${notification.id}" for userId="${userId}"`, 'NotificationsService.createNotification');
 
     return this.mapToResponseDto(notification);
   }
@@ -34,6 +39,8 @@ export class NotificationsService implements INotificationsService {
   ): Promise<PaginatedNotificationsDto> {
     const notifications = await this.notificationsRepository.findByUserId(userId, skip, take);
     const total = await this.notificationsRepository.countByUserId(userId);
+
+    Logger.log(`Retrieved ${notifications.length} notifications for userId="${userId}" (total: ${total}, skip: ${skip}, take: ${take})`, 'NotificationsService.getUserNotifications');
 
     return {
       data: notifications.map((n) => this.mapToResponseDto(n)),
@@ -58,6 +65,8 @@ export class NotificationsService implements INotificationsService {
     }
 
     const updatedNotification = await this.notificationsRepository.markAsRead(notificationId);
+
+    Logger.log(`Notification with id="${notificationId}" marked as read for userId="${userId}"`, 'NotificationsService.markAsRead');
 
     return this.mapToResponseDto(updatedNotification);
   }

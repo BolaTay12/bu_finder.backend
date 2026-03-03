@@ -86,7 +86,11 @@ export class ItemsController {
     },
   })
   async getPendingItemReports(@Query() query: RecentlyItemsQueryDto): Promise<GetRecentItemsResponseDto> {
+    Logger.log(`Getting pending item reports with limit=${query.limit} and offset=${query.offset}`, 'ItemsController.getPendingItemReports');
+
     const { items, total } = await this.itemsService.getPendingItems(query.limit, query.offset);
+
+    Logger.log(`Retrieved ${items.length} pending item reports, total available: ${total}`, 'ItemsController.getPendingItemReports');
 
     return {
       status: responseStatus.SUCCESS,
@@ -178,7 +182,11 @@ export class ItemsController {
     },
   })
   async getRecentlyLostItems(@Query() query: RecentlyItemsQueryDto): Promise<GetRecentItemsResponseDto> {
+    Logger.log(`Getting recently lost items with limit=${query.limit} and offset=${query.offset}`, 'ItemsController.getRecentlyLostItems');
+
     const { items, total } = await this.itemsService.getRecentlyLostItems(query.limit, query.offset);
+
+    Logger.log(`Retrieved ${items.length} recently lost items, total available: ${total}`, 'ItemsController.getRecentlyLostItems');
 
     return {
       status: responseStatus.SUCCESS,
@@ -240,7 +248,11 @@ export class ItemsController {
     },
   })
   async getRecentlyFoundItems(@Query() query: RecentlyItemsQueryDto): Promise<GetRecentItemsResponseDto> {
+    Logger.log(`Getting recently found items with limit=${query.limit} and offset=${query.offset}`, 'ItemsController.getRecentlyFoundItems');
+    
     const { items, total } = await this.itemsService.getRecentlyFoundItems(query.limit, query.offset);
+
+    Logger.log(`Retrieved ${items.length} recently found items, total available: ${total}`, 'ItemsController.getRecentlyFoundItems');
 
     return {
       status: responseStatus.SUCCESS,
@@ -263,6 +275,8 @@ export class ItemsController {
   @ApiOperation({ summary: 'Report a lost or found item with optional image' })
   @ApiResponse({ status: 201, description: 'Item reported successfully', type: CreateItemResponseDto })
   async createItem( @CurrentUser('id') userId: string, @Body() dto: CreateItemDto, @UploadedFile() file?: Express.Multer.File, ): Promise<CreateItemResponseDto> {
+    Logger.log(`Creating item with title="${dto.title}", type="${dto.type}", submittedBy="${userId}"`, 'ItemsController.createItem');
+    
     let imageUrl: string | undefined;
 
     // Upload image to Cloudinary if provided
@@ -293,6 +307,8 @@ export class ItemsController {
       submittedBy: userId,
     });
 
+    Logger.log(`Item created with ID="${item.id}"`, 'ItemsController.createItem');
+
     return {
       status: responseStatus.SUCCESS,
       message: 'Item reported successfully',
@@ -305,7 +321,12 @@ export class ItemsController {
   @ApiOperation({ summary: 'Get all items' })
   @ApiResponse({ status: 200, description: 'Items retrieved successfully', type: GetItemsResponseDto })
   async getAllItems(): Promise<GetItemsResponseDto> {
+    Logger.log('Getting all items', 'ItemsController.getAllItems');
+
     const items = await this.itemsService.getAllItems();
+    
+    Logger.log(`Retrieved ${items.length} items`, 'ItemsController.getAllItems');
+
     return {
       status: responseStatus.SUCCESS,
       message: 'Items retrieved successfully',
@@ -322,7 +343,12 @@ export class ItemsController {
   async getUserItems(
     @CurrentUser('id') userId: string,
   ): Promise<GetItemsResponseDto> {
+    Logger.log(`Getting items for userId="${userId}"`, 'ItemsController.getUserItems');
+
     const items = await this.itemsService.getUserItems(userId);
+    
+    Logger.log(`Retrieved ${items.length} items for userId="${userId}"`, 'ItemsController.getUserItems');
+
     return {
       status: responseStatus.SUCCESS,
       message: 'User items retrieved successfully',
@@ -339,7 +365,13 @@ export class ItemsController {
   async getUserItemCount(
     @CurrentUser('id') userId: string,
   ): Promise<GetItemCountResponseDto> {
+
+    Logger.log(`Getting item count for userId="${userId}"`, 'ItemsController.getUserItemCount');
+
     const count = await this.itemsService.getUserItemCount(userId);
+    
+    Logger.log(`Retrieved item count for userId="${userId}": lost=${count.lost}, found=${count.found}`, 'ItemsController.getUserItemCount');
+    
     return {
       status: responseStatus.SUCCESS,
       message: 'Item count retrieved successfully',
@@ -354,7 +386,13 @@ export class ItemsController {
   async getItemById(
     @Param('id') id: string,
   ): Promise<CreateItemResponseDto> {
+
+    Logger.log(`Getting item by id="${id}"`, 'ItemsController.getItemById');
+
     const item = await this.itemsService.getItemById(id);
+
+    Logger.log(`Retrieved item with id="${id}": ${JSON.stringify(item)}`, 'ItemsController.getItemById');
+
     return {
       status: responseStatus.SUCCESS,
       message: 'Item retrieved successfully',
@@ -372,7 +410,12 @@ export class ItemsController {
   async approveItem(
     @Param('id') id: string,
   ): Promise<CreateItemResponseDto> {
+    Logger.log(`Approving item with id="${id}"`, 'ItemsController.approveItem');
+
     const item = await this.itemsService.approveItem(id);
+
+    Logger.log(`Approved item with id="${id}"`, 'ItemsController.approveItem');
+    
     return {
       status: responseStatus.SUCCESS,
       message: 'Item approved successfully',
@@ -390,7 +433,12 @@ export class ItemsController {
   async rejectItem(
     @Param('id') id: string,
   ): Promise<CreateItemResponseDto> {
+    Logger.log(`Rejecting item with id="${id}"`, 'ItemsController.rejectItem');
+
     const item = await this.itemsService.rejectItem(id);
+    
+    Logger.log(`Rejected item with id="${id}"`, 'ItemsController.rejectItem');
+    
     return {
       status: responseStatus.SUCCESS,
       message: 'Item rejected successfully',
@@ -406,7 +454,12 @@ export class ItemsController {
   @ApiOperation({ summary: 'Admin: Get dashboard metrics (total reports, pending approvals, resolved cases)' })
   @ApiResponse({ status: 200, description: 'Admin metrics retrieved successfully' })
   async getAdminMetrics(): Promise<any> {
+    Logger.log('Getting admin metrics', 'ItemsController.getAdminMetrics');
+
     const metrics = await this.itemsService.getAdminMetrics();
+    
+    Logger.log(`Retrieved admin metrics: ${JSON.stringify(metrics)}`, 'ItemsController.getAdminMetrics');
+    
     return {
       status: responseStatus.SUCCESS,
       message: 'Admin metrics retrieved successfully',

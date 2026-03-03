@@ -64,6 +64,8 @@ export class ClaimsController {
     @Body() dto: CreateClaimDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
+    Logger.log(`Submitting claim for userId="${userId}" with data: ${JSON.stringify(dto)}`, 'ClaimsController.submitClaim');
+
     let proofImageUrl: string | undefined;
 
     if (file) {
@@ -77,6 +79,8 @@ export class ClaimsController {
     }
 
     const claim = await this.claimsService.submitClaim(userId, dto, proofImageUrl);
+
+    Logger.log(`Claim submitted successfully for userId="${userId}": ${JSON.stringify(claim)}`, 'ClaimsController.submitClaim');
 
     return {
       status: responseStatus.SUCCESS,
@@ -94,8 +98,11 @@ export class ClaimsController {
     @Query('limit') limit: number = 10,
     @Query('offset') offset: number = 0,
   ) {
+    Logger.log(`Getting claims for userId="${userId}" with pagination: limit=${limit}, offset=${offset}`, 'ClaimsController.getMyClaims');
+    
     const result = await this.claimsService.getMyClaims(userId, limit, offset);
 
+    Logger.log(`Retrieved ${result.claims.length} claims for userId="${userId}"`, 'ClaimsController.getMyClaims');
     return {
       status: responseStatus.SUCCESS,
       message: 'Your claims retrieved successfully',
@@ -117,8 +124,11 @@ export class ClaimsController {
     @Query('limit') limit: number = 10,
     @Query('offset') offset: number = 0,
   ) {
+    Logger.log(`Getting all claims with pagination: limit=${limit}, offset=${offset}`, 'ClaimsController.getAllClaims');
+
     const result = await this.claimsService.getAllClaims(limit, offset);
 
+    Logger.log(`Retrieved ${result.claims.length} claims`, 'ClaimsController.getAllClaims');
     return {
       status: responseStatus.SUCCESS,
       message: 'All claims retrieved successfully',
@@ -137,7 +147,11 @@ export class ClaimsController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Claim retrieved successfully', type: ClaimResponseDto })
   async getClaimById(@Param('id') claimId: string) {
+    Logger.log(`Getting claim with id="${claimId}"`, 'ClaimsController.getClaimById');
+
     const claim = await this.claimsService.getClaimById(claimId);
+
+    Logger.log(`Claim retrieved successfully with id="${claimId}"`, 'ClaimsController.getClaimById');
 
     return {
       status: responseStatus.SUCCESS,
@@ -152,7 +166,11 @@ export class ClaimsController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Claim approved successfully', type: ClaimResponseDto })
   async approveClaim(@Param('id') claimId: string) {
+    Logger.log(`Approving claim with id="${claimId}"`, 'ClaimsController.approveClaim');
+
     const claim = await this.claimsService.approveClaim(claimId);
+    
+    Logger.log(`Claim approved successfully with id="${claimId}"`, 'ClaimsController.approveClaim');
 
     return {
       status: responseStatus.SUCCESS,
@@ -167,7 +185,11 @@ export class ClaimsController {
   @ApiBearerAuth()
   @ApiResponse({ status: 200, description: 'Claim rejected successfully', type: ClaimResponseDto })
   async rejectClaim(@Param('id') claimId: string) {
+    Logger.log(`Rejecting claim with id="${claimId}"`, 'ClaimsController.rejectClaim');
+
     const claim = await this.claimsService.rejectClaim(claimId);
+
+    Logger.log(`Claim rejected successfully with id="${claimId}"`, 'ClaimsController.rejectClaim');
 
     return {
       status: responseStatus.SUCCESS,

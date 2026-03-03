@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, UseGuards, Query, BadRequestException, Inject } from '@nestjs/common';
+import { Controller, Get, Patch, Param, UseGuards, Query, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import type { INotificationsService } from './interface';
@@ -90,6 +90,9 @@ export class NotificationsController {
     @Query('skip') skip: string = '0',
     @Query('take') take: string = '20',
   ): Promise<PaginatedNotificationsDto> {
+
+    Logger.log(`Getting notifications for userId="${userId}" with pagination: skip=${skip}, take=${take}`, 'NotificationsController.getUserNotifications');
+
     const skipNum = parseInt(skip, 10);
     const takeNum = parseInt(take, 10);
 
@@ -151,6 +154,8 @@ export class NotificationsController {
     @Param('id') notificationId: string,
     @CurrentUser('id') userId: string,
   ): Promise<NotificationResponseDto> {
+    Logger.log(`Marking notification as read with id="${notificationId}" for userId="${userId}"`, 'NotificationsController.markAsRead');
+
     return this.notificationsService.markAsRead(notificationId, userId);
   }
 }
