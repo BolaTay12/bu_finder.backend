@@ -9,6 +9,7 @@ CREATE TABLE "users" (
 	"university_id" varchar(50) NOT NULL,
 	"password" varchar(255) NOT NULL,
 	"role" "user_role" DEFAULT 'STUDENT' NOT NULL,
+	"email_verified" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email"),
@@ -56,7 +57,5 @@ ALTER TABLE "claims" ADD CONSTRAINT "claims_item_id_items_id_fk" FOREIGN KEY ("i
 ALTER TABLE "claims" ADD CONSTRAINT "claims_claimant_id_users_id_fk" FOREIGN KEY ("claimant_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "notifications" ADD CONSTRAINT "notifications_matched_item_id_items_id_fk" FOREIGN KEY ("matched_item_id") REFERENCES "public"."items"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "idx_items_title_trgm" ON "items" USING gin ("title");--> statement-breakpoint
-CREATE INDEX "idx_items_description_trgm" ON "items" USING gin ("description");--> statement-breakpoint
 CREATE INDEX "idx_items_type" ON "items" USING btree ("type");--> statement-breakpoint
 CREATE INDEX "idx_items_status" ON "items" USING btree ("status");

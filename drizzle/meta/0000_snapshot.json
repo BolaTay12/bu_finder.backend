@@ -1,5 +1,5 @@
 {
-  "id": "837dbbba-995e-4a18-8aaf-775678769e17",
+  "id": "eb19039b-3c38-4670-8950-9a6e9d2e872b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -46,6 +46,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'STUDENT'"
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -170,36 +177,6 @@
         }
       },
       "indexes": {
-        "idx_items_title_trgm": {
-          "name": "idx_items_title_trgm",
-          "columns": [
-            {
-              "expression": "title",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gin",
-          "with": {}
-        },
-        "idx_items_description_trgm": {
-          "name": "idx_items_description_trgm",
-          "columns": [
-            {
-              "expression": "description",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gin",
-          "with": {}
-        },
         "idx_items_type": {
           "name": "idx_items_type",
           "columns": [

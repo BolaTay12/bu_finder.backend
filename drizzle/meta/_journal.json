@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1771273154002,
-      "tag": "0000_rich_santa_claus",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1771426215105,
-      "tag": "0001_living_warstar",
+      "when": 1772534236088,
+      "tag": "0000_polite_puma",
       "breakpoints": true
     }
   ]
