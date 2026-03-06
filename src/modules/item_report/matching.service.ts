@@ -5,12 +5,20 @@ import type { INotificationsService } from '../notifications/interface';
 import { NOTIFICATIONS_SERVICE } from '../notifications/interface';
 import type { ItemData } from '../item_report/interface/item-repository.interface';
 import { EmailService } from '../../common/email/email.service';
+import { GeminiService, MatchCandidate } from '../../common/gemini/gemini.service';
 import { eq } from 'drizzle-orm';
 import { Inject as NestInject } from '@nestjs/common';
 import { DRIZZLE } from '../../db/db.module';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../db/schema';
 import { users } from '../../db/schema';
+
+export interface MatchResultItem {
+  item: ItemData;
+  score: number;
+  reasoning: string;
+  matchMethod: 'gemini-ai' | 'fuzzy-similarity';
+}
 
 @Injectable()
 export class MatchingService {
@@ -22,13 +30,15 @@ export class MatchingService {
     @Inject(NOTIFICATIONS_SERVICE)
     private readonly notificationsService: INotificationsService,
     private readonly emailService: EmailService,
+    private readonly geminiService: GeminiService,
     @NestInject(DRIZZLE)
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   /**
-   * Performs automatic matching when an item is approved
-   * Finds matching items of opposite type and creates notifications
+   * Performs automatic matching when an item is approved.
+   * Uses Gemini AI for intelligent multimodal matching (text + images),
+   * with PostgreSQL similarity as a pre-filter fallback.
    */
   async matchItem(itemId: string, itemType: string): Promise<void> {
     try {
@@ -41,6 +51,7 @@ export class MatchingService {
       // Find opposite type items
       const oppositeType = itemType === 'LOST' ? 'FOUND' : 'LOST';
 
+      // Step 1: Pre-filter with PostgreSQL similarity to get candidates
       const searchParams: SearchItemsParams = {
         query: item.title,
         type: oppositeType as any,
@@ -48,22 +59,209 @@ export class MatchingService {
         offset: 0,
       };
 
-      const matches = await this.itemsRepository.searchItems(searchParams);
+      const preFilterMatches = await this.itemsRepository.searchItems(searchParams);
+      const candidates = preFilterMatches.filter((match) => match.matchScore >= 0.1);
 
-      // Filter for matches with score >= 0.5
-      const qualifiedMatches = matches.filter((match) => match.matchScore >= 0.1);
+      if (candidates.length === 0) {
+        this.logger.log(`No pre-filter candidates found for item ${itemId}`);
+        return;
+      }
 
       this.logger.log(
-        `Found ${qualifiedMatches.length} matches for item ${itemId} (${itemType})`,
+        `Found ${candidates.length} pre-filter candidates for item ${itemId}`,
       );
 
-      // Create notifications for each match
-      for (const matchedItem of qualifiedMatches) {
-        await this.createMatchNotifications(item, matchedItem);
+      // Step 2: Use Gemini AI if the item has an image, otherwise fuzzy match
+      if (this.geminiService.isAvailable && item.imageUrl) {
+        this.logger.log(`Item ${itemId} has an image, using Gemini AI matching`);
+        await this.matchWithGemini(item, candidates);
+      } else {
+        if (!item.imageUrl) {
+          this.logger.log(`Item ${itemId} has no image, using fuzzy similarity matching`);
+        } else {
+          this.logger.warn('Gemini unavailable, falling back to fuzzy similarity matching');
+        }
+        await this.matchWithSimilarity(item, candidates);
       }
     } catch (error) {
       this.logger.error(`Error matching item ${itemId}:`, error);
-      // Don't throw, just log - we don't want matching to break approval flow
+    }
+  }
+
+  /**
+   * Finds and returns potential matches for a given item (user-triggered).
+   * Uses Gemini AI if the item has an image, otherwise fuzzy similarity.
+   */
+  async findMatchesForItem(itemId: string): Promise<MatchResultItem[]> {
+    const item = await this.itemsRepository.findById(itemId);
+    if (!item) {
+      this.logger.warn(`Item ${itemId} not found for matching`);
+      return [];
+    }
+
+    const oppositeType = item.type === 'LOST' ? 'FOUND' : 'LOST';
+
+    const searchParams: SearchItemsParams = {
+      query: item.title,
+      type: oppositeType as any,
+      limit: 100,
+      offset: 0,
+    };
+
+    const preFilterMatches = await this.itemsRepository.searchItems(searchParams);
+    const candidates = preFilterMatches.filter((match) => match.matchScore >= 0.1);
+
+    if (candidates.length === 0) {
+      this.logger.log(`No candidates found for item ${itemId}`);
+      return [];
+    }
+
+    // Use Gemini if item has an image and service is available, otherwise fuzzy
+    if (this.geminiService.isAvailable && item.imageUrl) {
+      this.logger.log(`Finding matches for item ${itemId} using Gemini AI`);
+      return this.findWithGemini(item, candidates);
+    } else {
+      const method = !item.imageUrl ? 'no image' : 'Gemini unavailable';
+      this.logger.log(`Finding matches for item ${itemId} using fuzzy similarity (${method})`);
+      return this.findWithSimilarity(candidates);
+    }
+  }
+
+  /**
+   * Returns Gemini AI match results (without creating notifications)
+   */
+  private async findWithGemini(
+    item: ItemData,
+    candidates: (ItemData & { matchScore: number })[],
+  ): Promise<MatchResultItem[]> {
+    const sourceCandidate: MatchCandidate = {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      location: item.location,
+      imageUrl: item.imageUrl,
+    };
+
+    const matchCandidates: MatchCandidate[] = candidates.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      location: c.location,
+      imageUrl: c.imageUrl,
+    }));
+
+    const results: MatchResultItem[] = [];
+    const batchSize = 10;
+
+    for (let i = 0; i < matchCandidates.length; i += batchSize) {
+      const batch = matchCandidates.slice(i, i + batchSize);
+      const geminiResults = await this.geminiService.findMatches(sourceCandidate, batch);
+
+      for (const match of geminiResults.filter((r) => r.score >= 0.4)) {
+        const matchedItem = candidates.find((c) => c.id === match.candidateId);
+        if (matchedItem) {
+          results.push({
+            item: matchedItem,
+            score: match.score,
+            reasoning: match.reasoning,
+            matchMethod: 'gemini-ai',
+          });
+        }
+      }
+    }
+
+    return results.sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * Returns fuzzy similarity match results (without creating notifications)
+   */
+  private findWithSimilarity(
+    candidates: (ItemData & { matchScore: number })[],
+  ): MatchResultItem[] {
+    return candidates
+      .filter((match) => match.matchScore >= 0.3)
+      .map((match) => ({
+        item: match,
+        score: match.matchScore,
+        reasoning: 'Matched by text similarity',
+        matchMethod: 'fuzzy-similarity' as const,
+      }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  /**
+   * AI-powered matching using Gemini multimodal analysis
+   */
+  private async matchWithGemini(
+    item: ItemData,
+    candidates: (ItemData & { matchScore: number })[],
+  ): Promise<void> {
+    const sourceCandidate: MatchCandidate = {
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      category: item.category,
+      location: item.location,
+      imageUrl: item.imageUrl,
+    };
+
+    const matchCandidates: MatchCandidate[] = candidates.map((c) => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      category: c.category,
+      location: c.location,
+      imageUrl: c.imageUrl,
+    }));
+
+    // Process in batches of 10 to avoid token limits
+    const batchSize = 10;
+    for (let i = 0; i < matchCandidates.length; i += batchSize) {
+      const batch = matchCandidates.slice(i, i + batchSize);
+
+      const geminiResults = await this.geminiService.findMatches(
+        sourceCandidate,
+        batch,
+      );
+
+      // Filter for matches with AI confidence >= 0.4
+      const qualifiedMatches = geminiResults.filter((r) => r.score >= 0.4);
+
+      this.logger.log(
+        `Gemini batch ${Math.floor(i / batchSize) + 1}: ${qualifiedMatches.length}/${batch.length} qualified matches`,
+      );
+
+      for (const match of qualifiedMatches) {
+        const matchedItem = candidates.find((c) => c.id === match.candidateId);
+        if (matchedItem) {
+          await this.createMatchNotifications(
+            item,
+            { ...matchedItem, matchScore: match.score },
+            match.reasoning,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Fallback: basic PostgreSQL similarity matching
+   */
+  private async matchWithSimilarity(
+    item: ItemData,
+    candidates: (ItemData & { matchScore: number })[],
+  ): Promise<void> {
+    const qualifiedMatches = candidates.filter((match) => match.matchScore >= 0.3);
+
+    this.logger.log(
+      `Similarity fallback: ${qualifiedMatches.length} matches for item ${item.id}`,
+    );
+
+    for (const matchedItem of qualifiedMatches) {
+      await this.createMatchNotifications(item, matchedItem);
     }
   }
 
@@ -73,88 +271,36 @@ export class MatchingService {
   private async createMatchNotifications(
     item1: ItemData,
     item2: ItemData & { matchScore: number },
+    aiReasoning?: string,
   ): Promise<void> {
     try {
       const scorePercentage = Math.round(item2.matchScore * 100);
-
-      // // Fetch user data for both parties
-      // const [user1] = await this.db
-      //   .select()
-      //   .from(users)
-      //   .where(eq(users.id, item1.submittedBy))
-      //   .limit(1);
-
-      // const [user2] = await this.db
-      //   .select()
-      //   .from(users)
-      //   .where(eq(users.id, item2.submittedBy))
-      //   .limit(1);
+      const reasoningText = aiReasoning ? ` AI insight: ${aiReasoning}` : '';
 
       // Notification for item1 submitter
       await this.notificationsService.createNotification(
         item1.submittedBy,
         `Potential Match Found!`,
-        `Someone found an item similar to your "${item1.title}". Match confidence: ${scorePercentage}%`,
+        `Someone found an item similar to your "${item1.title}". Match confidence: ${scorePercentage}%.${reasoningText}`,
         item2.id,
       );
-
-      // // Send email to item1 submitter (user1)
-      // if (user1?.email) {
-      //   const emailHtml = this.emailService.generateMatchNotificationHtml(
-      //     user1.fullName,
-      //     item2.title,
-      //     item2.description,
-      //     item2.matchScore,
-      //     item2.type as 'LOST' | 'FOUND',
-      //   );
-
-      //   await this.emailService.sendEmail({
-      //     to: user1.email,
-      //     subject: 'Potential Match Found! - BU Finder',
-      //     html: emailHtml,
-      //   }).catch((error) => {
-      //     this.logger.error(`Failed to send email to ${user1.email}:`, error);
-      //     // Don't throw - continue even if email fails
-      //   });
-      // }
 
       // Notification for item2 submitter
       await this.notificationsService.createNotification(
         item2.submittedBy,
         `Potential Match Found!`,
-        `Someone lost an item similar to the one you found "${item2.title}". Match confidence: ${scorePercentage}%`,
+        `Someone lost an item similar to the one you found "${item2.title}". Match confidence: ${scorePercentage}%.${reasoningText}`,
         item1.id,
       );
 
-      // // Send email to item2 submitter (user2)
-      // if (user2?.email) {
-      //   const emailHtml = this.emailService.generateMatchNotificationHtml(
-      //     user2.fullName,
-      //     item1.title,
-      //     item1.description,
-      //     item2.matchScore,
-      //     item1.type as 'LOST' | 'FOUND',
-      //   );
-
-      //   await this.emailService.sendEmail({
-      //     to: user2.email,
-      //     subject: 'Potential Match Found! - BU Finder',
-      //     html: emailHtml,
-      //   }).catch((error) => {
-      //     this.logger.error(`Failed to send email to ${user2.email}:`, error);
-      //     // Don't throw - continue even if email fails
-      //   });
-      // }
-
       this.logger.log(
-        `Created match notifications for items ${item1.id} and ${item2.id}`,
+        `Created match notifications for items ${item1.id} and ${item2.id} (score: ${scorePercentage}%)`,
       );
     } catch (error) {
       this.logger.error(
         `Error creating match notifications for items ${item1.id} and ${item2.id}:`,
         error,
       );
-      // Don't throw - continue processing other matches
     }
   }
 }
