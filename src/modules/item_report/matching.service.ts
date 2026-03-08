@@ -5,7 +5,7 @@ import type { INotificationsService } from '../notifications/interface';
 import { NOTIFICATIONS_SERVICE } from '../notifications/interface';
 import type { ItemData } from '../item_report/interface/item-repository.interface';
 import { EmailService } from '../../common/email/email.service';
-import { GeminiService, MatchCandidate } from '../../common/gemini/gemini.service';
+import { AiMatchingService, MatchCandidate } from '../../common/gemini/gemini.service';
 import { eq } from 'drizzle-orm';
 import { Inject as NestInject } from '@nestjs/common';
 import { DRIZZLE } from '../../db/db.module';
@@ -17,7 +17,7 @@ export interface MatchResultItem {
   item: ItemData;
   score: number;
   reasoning: string;
-  matchMethod: 'gemini-ai' | 'fuzzy-similarity';
+  matchMethod: 'groq-ai' | 'fuzzy-similarity';
 }
 
 @Injectable()
@@ -30,14 +30,14 @@ export class MatchingService {
     @Inject(NOTIFICATIONS_SERVICE)
     private readonly notificationsService: INotificationsService,
     private readonly emailService: EmailService,
-    private readonly geminiService: GeminiService,
+    private readonly aiMatchingService: AiMatchingService,
     @NestInject(DRIZZLE)
     private readonly db: NodePgDatabase<typeof schema>,
   ) {}
 
   /**
    * Performs automatic matching when an item is approved.
-   * Uses Gemini AI for intelligent multimodal matching (text + images),
+   * Uses Groq AI for intelligent multimodal matching (text + images),
    * with PostgreSQL similarity as a pre-filter fallback.
    */
   async matchItem(itemId: string, itemType: string): Promise<void> {
@@ -71,15 +71,15 @@ export class MatchingService {
         `Found ${candidates.length} pre-filter candidates for item ${itemId}`,
       );
 
-      // Step 2: Use Gemini AI if the item has an image, otherwise fuzzy match
-      if (this.geminiService.isAvailable && item.imageUrl) {
-        this.logger.log(`Item ${itemId} has an image, using Gemini AI matching`);
-        await this.matchWithGemini(item, candidates);
+      // Step 2: Use Groq AI if the item has an image, otherwise fuzzy match
+      if (this.aiMatchingService.isAvailable && item.imageUrl) {
+        this.logger.log(`Item ${itemId} has an image, using Groq AI matching`);
+        await this.matchWithAi(item, candidates);
       } else {
         if (!item.imageUrl) {
           this.logger.log(`Item ${itemId} has no image, using fuzzy similarity matching`);
         } else {
-          this.logger.warn('Gemini unavailable, falling back to fuzzy similarity matching');
+          this.logger.warn('Groq AI unavailable, falling back to fuzzy similarity matching');
         }
         await this.matchWithSimilarity(item, candidates);
       }
@@ -90,7 +90,7 @@ export class MatchingService {
 
   /**
    * Finds and returns potential matches for a given item (user-triggered).
-   * Uses Gemini AI if the item has an image, otherwise fuzzy similarity.
+   * Uses Groq AI if the item has an image, otherwise fuzzy similarity.
    */
   async findMatchesForItem(itemId: string): Promise<MatchResultItem[]> {
     const item = await this.itemsRepository.findById(itemId);
@@ -116,21 +116,21 @@ export class MatchingService {
       return [];
     }
 
-    // Use Gemini if item has an image and service is available, otherwise fuzzy
-    if (this.geminiService.isAvailable && item.imageUrl) {
-      this.logger.log(`Finding matches for item ${itemId} using Gemini AI`);
-      return this.findWithGemini(item, candidates);
+    // Use Groq AI if item has an image and service is available, otherwise fuzzy
+    if (this.aiMatchingService.isAvailable && item.imageUrl) {
+      this.logger.log(`Finding matches for item ${itemId} using Groq AI`);
+      return this.findWithAi(item, candidates);
     } else {
-      const method = !item.imageUrl ? 'no image' : 'Gemini unavailable';
+      const method = !item.imageUrl ? 'no image' : 'Groq AI unavailable';
       this.logger.log(`Finding matches for item ${itemId} using fuzzy similarity (${method})`);
       return this.findWithSimilarity(candidates);
     }
   }
 
   /**
-   * Returns Gemini AI match results (without creating notifications)
+   * Returns Groq AI match results (without creating notifications)
    */
-  private async findWithGemini(
+  private async findWithAi(
     item: ItemData,
     candidates: (ItemData & { matchScore: number })[],
   ): Promise<MatchResultItem[]> {
@@ -157,16 +157,16 @@ export class MatchingService {
 
     for (let i = 0; i < matchCandidates.length; i += batchSize) {
       const batch = matchCandidates.slice(i, i + batchSize);
-      const geminiResults = await this.geminiService.findMatches(sourceCandidate, batch);
+      const aiResults = await this.aiMatchingService.findMatches(sourceCandidate, batch);
 
-      for (const match of geminiResults.filter((r) => r.score >= 0.4)) {
+      for (const match of aiResults.filter((r) => r.score >= 0.4)) {
         const matchedItem = candidates.find((c) => c.id === match.candidateId);
         if (matchedItem) {
           results.push({
             item: matchedItem,
             score: match.score,
             reasoning: match.reasoning,
-            matchMethod: 'gemini-ai',
+            matchMethod: 'groq-ai',
           });
         }
       }
@@ -193,9 +193,9 @@ export class MatchingService {
   }
 
   /**
-   * AI-powered matching using Gemini multimodal analysis
+   * AI-powered matching using Groq multimodal analysis
    */
-  private async matchWithGemini(
+  private async matchWithAi(
     item: ItemData,
     candidates: (ItemData & { matchScore: number })[],
   ): Promise<void> {
@@ -222,16 +222,16 @@ export class MatchingService {
     for (let i = 0; i < matchCandidates.length; i += batchSize) {
       const batch = matchCandidates.slice(i, i + batchSize);
 
-      const geminiResults = await this.geminiService.findMatches(
+      const aiResults = await this.aiMatchingService.findMatches(
         sourceCandidate,
         batch,
       );
 
-      // Filter for matches with AI confidence >= 0.4
-      const qualifiedMatches = geminiResults.filter((r) => r.score >= 0.4);
+      // Filter for matches with AI confidence >= 0.1
+      const qualifiedMatches = aiResults.filter((r) => r.score >= 0.1);
 
       this.logger.log(
-        `Gemini batch ${Math.floor(i / batchSize) + 1}: ${qualifiedMatches.length}/${batch.length} qualified matches`,
+        `AI batch ${Math.floor(i / batchSize) + 1}: ${qualifiedMatches.length}/${batch.length} qualified matches`,
       );
 
       for (const match of qualifiedMatches) {
@@ -254,7 +254,7 @@ export class MatchingService {
     item: ItemData,
     candidates: (ItemData & { matchScore: number })[],
   ): Promise<void> {
-    const qualifiedMatches = candidates.filter((match) => match.matchScore >= 0.3);
+    const qualifiedMatches = candidates.filter((match) => match.matchScore >= 0.1);
 
     this.logger.log(
       `Similarity fallback: ${qualifiedMatches.length} matches for item ${item.id}`,
