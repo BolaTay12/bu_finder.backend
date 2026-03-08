@@ -23,7 +23,7 @@ export class AiMatchingService {
   private readonly groq: Groq | null;
 
   private readonly TEXT_MODEL = 'llama-3.3-70b-versatile';
-  private readonly VISION_MODEL = 'llama-3.2-90b-vision-preview';
+  private readonly VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 
   constructor(private readonly configService: ConfigService) {
     const apiKey = this.configService.get<string>('GROQ_API_KEY');

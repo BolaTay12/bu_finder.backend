@@ -237,6 +237,9 @@ export class MatchingService {
       for (const match of qualifiedMatches) {
         const matchedItem = candidates.find((c) => c.id === match.candidateId);
         if (matchedItem) {
+          this.logger.log(
+            `🎯 MATCH FOUND: "${item.title}" ↔ "${matchedItem.title}" | Score: ${Math.round(match.score * 100)}% | Reason: ${match.reasoning}`,
+          );
           await this.createMatchNotifications(
             item,
             { ...matchedItem, matchScore: match.score },
@@ -261,6 +264,9 @@ export class MatchingService {
     );
 
     for (const matchedItem of qualifiedMatches) {
+      this.logger.log(
+        `🎯 MATCH FOUND (fuzzy): "${item.title}" ↔ "${matchedItem.title}" | Score: ${Math.round(matchedItem.matchScore * 100)}%`,
+      );
       await this.createMatchNotifications(item, matchedItem);
     }
   }
