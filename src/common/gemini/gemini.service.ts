@@ -204,7 +204,9 @@ SCORING RULES:
 Respond with a JSON object containing a "matches" array:
 {"matches": [{"candidateId": "<uuid>", "score": <number>, "reasoning": "<brief explanation>"}]}
 
-If no candidates match at all, return: {"matches": []}`;
+If no candidates match at all, return: {"matches": []}
+
+CRITICAL: Output ONLY the raw JSON object. Do NOT include any explanation, analysis, markdown, or text before or after the JSON. Your entire response must be valid JSON and nothing else.`;
   }
 
   private parseMatchResponse(
@@ -212,12 +214,32 @@ If no candidates match at all, return: {"matches": []}`;
     candidates: MatchCandidate[],
   ): AiMatchResult[] {
     try {
-      const cleaned = text
+      // Try 1: Strip markdown fences and parse directly
+      let cleaned = text
         .replace(/```json\s*/g, '')
         .replace(/```\s*/g, '')
         .trim();
 
-      const parsed = JSON.parse(cleaned);
+      let parsed: any;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch {
+        // Try 2: Extract JSON object from verbose text (find the last { ... } block with "matches")
+        const jsonMatch = text.match(/\{[\s\S]*"matches"[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          // Try 3: Extract JSON array from verbose text
+          const arrayMatch = text.match(/\[[\s\S]*"candidateId"[\s\S]*\]/);
+          if (arrayMatch) {
+            parsed = JSON.parse(arrayMatch[0]);
+          } else {
+            this.logger.error('No JSON found in Groq response');
+            return [];
+          }
+        }
+      }
+
       const matches = Array.isArray(parsed) ? parsed : (parsed.matches || []);
 
       if (!Array.isArray(matches)) return [];
