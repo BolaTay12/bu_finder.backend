@@ -154,3 +154,11 @@ export class GetItemCountResponseDto {
   @ApiProperty({ type: Object, example: { lost: 3, found: 5 } })
   data: { lost: number; found: number };
 }
+
+export class DeleteItemResponseDto {
+  @ApiProperty({ example: 'success', enum: ['success', 'error'] })
+  status: string;
+
+  @ApiProperty({ example: 'Approved item report deleted successfully' })
+  message: string;
+}

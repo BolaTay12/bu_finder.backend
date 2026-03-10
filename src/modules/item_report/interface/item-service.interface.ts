@@ -16,6 +16,7 @@ export interface IItemsService {
   getPendingItems(limit: number, offset: number): Promise<{ items: ItemData[]; total: number }>;
   getAdminMetrics(): Promise<{ totalReports: number; pendingApprovals: number; resolvedCases: number }>;
   findMatchesForItem(id: string): Promise<any[]>;
+  deleteApprovedItem(id: string): Promise<void>;
 }
 
 export const ITEMS_SERVICE = Symbol('ITEMS_SERVICE');

@@ -150,4 +150,12 @@ export class ItemsService implements IItemsService {
         }
         return this.matchingService.findMatchesForItem(id);
     }
-}
+
+    async deleteApprovedItem(id: string): Promise<void> {
+        const item = await this.getItemById(id);
+        if (item.status !== 'APPROVED') {
+            throw new ForbiddenException('Only APPROVED items can be deleted');
+        }
+        await this.itemsRepository.delete(id);
+    }
+}``

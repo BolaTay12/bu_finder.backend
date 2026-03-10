@@ -3,6 +3,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -17,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiConsumes, ApiQuery } from '@nestjs/swagger';
-import { CreateItemDto, CreateItemResponseDto, GetItemCountResponseDto, GetItemsResponseDto, ItemResponseDto, RecentlyItemsQueryDto, GetRecentItemsResponseDto } from './dto/items.dto';
+import { CreateItemDto, CreateItemResponseDto, DeleteItemResponseDto, GetItemCountResponseDto, GetItemsResponseDto, ItemResponseDto, RecentlyItemsQueryDto, GetRecentItemsResponseDto } from './dto/items.dto';
 import { SearchItemsQueryDto, SearchItemsResponseDto } from './dto/search-items.dto';
 import { JwtAuthGuard, RolesGuard } from '../../auth/guards';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -465,6 +466,30 @@ export class ItemsController {
       status: responseStatus.SUCCESS,
       message: 'Item rejected successfully',
       data: item,
+    };
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Admin: Delete an approved item report (ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'Approved item report deleted successfully', type: DeleteItemResponseDto })
+  @ApiResponse({ status: 403, description: 'Only APPROVED items can be deleted' })
+  @ApiResponse({ status: 404, description: 'Item not found' })
+  async deleteApprovedItem(
+    @Param('id') id: string,
+  ): Promise<DeleteItemResponseDto> {
+    Logger.log(`Deleting approved item with id="${id}"`, 'ItemsController.deleteApprovedItem');
+
+    await this.itemsService.deleteApprovedItem(id);
+
+    Logger.log(`Deleted approved item with id="${id}"`, 'ItemsController.deleteApprovedItem');
+
+    return {
+      status: responseStatus.SUCCESS,
+      message: 'Approved item report deleted successfully',
     };
   }
 
