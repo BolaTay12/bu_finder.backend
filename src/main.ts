@@ -15,7 +15,7 @@ async function bootstrap() {
   );
 
 const cors = require('cors');
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: ['http://localhost:3000', 'https://mybufinder-app.vercel.app/'] }));
 
 
   const config = new DocumentBuilder()
